@@ -1,0 +1,3 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+:root{font-family:'DM Sans',sans-serif;color:#fff4f6;background:#10090d;font-synthesis:none;text-rendering:optimizeLegibility}
+*{box-sizing:border-box}html{min-width:320px;min-height:100%;background:#10090d}body{margin:0;min-width:320px;min-height:100vh}
