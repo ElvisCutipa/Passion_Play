@@ -20,8 +20,6 @@ type Card = {
   penalty?: string
 }
 
-type Theme = 'pasion' | 'atardecer' | 'cyber'
-
 const levels: Level[] = [
   { id: 'romantico', title: 'Romántico', subtitle: 'Conexión y ternura', symbol: '♥', points: 0 },
   { id: 'coqueto', title: 'Coqueto', subtitle: 'Miradas y chispa', symbol: '✦', points: 20 },
@@ -91,7 +89,7 @@ const deck: Record<string, Card[]> = {
   ]
 }
 
-// Audio Sintético NAtivo
+// Audio Sintético Nativo
 let globalAudioCtx: AudioContext | null = null
 
 function getAudioContext() {
@@ -155,7 +153,6 @@ function triggerVibration(pattern: number | number[]) {
 }
 
 function App() {
-  // Persistencia de Puntos e Historial
   const [points, setPoints] = useState(() => {
     const saved = localStorage.getItem('passion_play_points')
     return saved ? parseInt(saved, 10) : 0
@@ -165,19 +162,19 @@ function App() {
     return localStorage.getItem('passion_play_vip') === 'true'
   })
 
-  // Nombres de la pareja
+  // Nombres de la Pareja
   const [player1, setPlayer1] = useState(() => localStorage.getItem('passion_p1') || 'Él')
   const [player2, setPlayer2] = useState(() => localStorage.getItem('passion_p2') || 'Ella')
+  const [tempP1, setTempP1] = useState(player1)
+  const [tempP2, setTempP2] = useState(player2)
+  
   const [currentTurn, setCurrentTurn] = useState<1 | 2>(1)
   const [showNameModal, setShowNameModal] = useState(false)
 
-  // Métricas de Sesión
+  // Resumen
   const [completedCount, setCompletedCount] = useState(0)
   const [penaltiesCount, setPenaltiesCount] = useState(0)
   const [showSummaryModal, setShowSummaryModal] = useState(false)
-
-  // Temas visuales
-  const [theme, setTheme] = useState<Theme>('pasion')
 
   const [levelId, setLevelId] = useState('romantico')
   const [cardIndex, setCardIndex] = useState(0)
@@ -195,7 +192,6 @@ function App() {
 
   const [spinning, setSpinning] = useState(false)
   const [rouletteResult, setRouletteResult] = useState<Card | null>(null)
-  const [mode, setMode] = useState<'local' | 'online'>('local')
 
   const level = levels.find((item) => item.id === levelId) ?? levels[0]
   const cards = deck[levelId] ?? deck.romantico
@@ -205,12 +201,8 @@ function App() {
 
   useEffect(() => { localStorage.setItem('passion_play_points', points.toString()) }, [points])
   useEffect(() => { localStorage.setItem('passion_play_vip', isVipUnlocked.toString()) }, [isVipUnlocked])
-  useEffect(() => {
-    localStorage.setItem('passion_p1', player1)
-    localStorage.setItem('passion_p2', player2)
-  }, [player1, player2])
 
- // Temporizador corregido para TypeScript y Navegador
+  // Temporizador
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null
     if (isTimerRunning && timerSeconds !== null && timerSeconds > 0) {
@@ -222,6 +214,18 @@ function App() {
     }
     return () => { if (interval) clearInterval(interval) }
   }, [isTimerRunning, timerSeconds])
+
+  function saveNames() {
+    playSound('click')
+    const finalP1 = tempP1.trim() || 'Él'
+    const finalP2 = tempP2.trim() || 'Ella'
+    setPlayer1(finalP1)
+    setPlayer2(finalP2)
+    localStorage.setItem('passion_p1', finalP1)
+    localStorage.setItem('passion_p2', finalP2)
+    setShowNameModal(false)
+  }
+
   function selectLevel(item: Level) {
     if (!isUnlocked(item)) {
       if (item.isVip) setShowVipModal(true)
@@ -341,7 +345,7 @@ function App() {
   const activePlayerName = currentTurn === 1 ? player1 : player2
 
   return (
-    <main className={`app-shell theme-${theme}`}>
+    <main className="app-shell">
       {/* HEADER */}
       <header className="topbar">
         <div className="brand-mark">P<span>✦</span></div>
@@ -350,17 +354,10 @@ function App() {
           <small>PAREJA: {player1} & {player2}</small>
         </div>
         <div className="topbar-actions">
-          <button className="icon-btn" onClick={() => { playSound('click'); setShowNameModal(true); }}>👥</button>
+          <button className="icon-btn" onClick={() => { playSound('click'); setTempP1(player1); setTempP2(player2); setShowNameModal(true); }}>👥</button>
           <button className="profile-dot" onClick={() => { playSound('click'); setShowInfo(true); }}>?</button>
         </div>
       </header>
-
-      {/* SELECTOR DE TEMAS */}
-      <div className="theme-selector">
-        <button className={theme === 'pasion' ? 'active' : ''} onClick={() => setTheme('pasion')}>🍷 Pasión</button>
-        <button className={theme === 'atardecer' ? 'active' : ''} onClick={() => setTheme('atardecer')}>🌅 Dorado</button>
-        <button className={theme === 'cyber' ? 'active' : ''} onClick={() => setTheme('cyber')}>⚡ Cyber</button>
-      </div>
 
       {/* HERO SECTION */}
       <section className="hero">
@@ -383,10 +380,10 @@ function App() {
           <strong>{points}</strong>
           <small>pts acumulados</small>
         </div>
-        <div className="stat-card">
+        <div className="stat-card clickable-turn" onClick={() => { playSound('click'); toggleTurn(); }}>
           <span className="stat-label">TURNO DE</span>
           <strong>{activePlayerName}</strong>
-          <small>haz clic para cambiar</small>
+          <small>toca para cambiar 🔄</small>
         </div>
       </section>
 
@@ -427,16 +424,6 @@ function App() {
         })}
       </section>
 
-      {/* MODOS */}
-      <div className="mode-switch">
-        <button className={mode === 'local' ? 'active' : ''} onClick={() => { playSound('click'); setMode('local'); }}>
-          <span>▣</span><strong>Un celular</strong><small>Jueguen juntos</small>
-        </button>
-        <button className={mode === 'online' ? 'active' : ''} onClick={() => { playSound('click'); setMode('online'); }}>
-          <span>⌁</span><strong>Dos celulares</strong><small>Modo en línea</small>
-        </button>
-      </div>
-
       {/* BOTÓN PRINCIPAL */}
       <button
         className="primary-cta"
@@ -456,7 +443,7 @@ function App() {
 
       <footer>
         <span>PASSION PLAY © 2026</span>
-        <span>SUITE PROFESIONAL COMPLETA</span>
+        <span>EDICIÓN ESPECIAL PAREJAS</span>
       </footer>
 
       {/* MODAL CONFIGURACIÓN DE NOMBRES */}
@@ -465,15 +452,16 @@ function App() {
           <div className="modal-content">
             <button className="modal-close" onClick={() => setShowNameModal(false)}>×</button>
             <h2>Configurar Pareja 👥</h2>
+            <p className="modal-sub">Escriban sus nombres para gestionar los turnos:</p>
             <div className="input-group">
-              <label>Nombre Jugador 1:</label>
-              <input type="text" value={player1} onChange={(e) => setPlayer1(e.target.value)} />
+              <label>Jugador 1 / Él:</label>
+              <input type="text" value={tempP1} onChange={(e) => setTempP1(e.target.value)} placeholder="Ej. Elvis" />
             </div>
             <div className="input-group">
-              <label>Nombre Jugador 2:</label>
-              <input type="text" value={player2} onChange={(e) => setPlayer2(e.target.value)} />
+              <label>Jugador 2 / Ella:</label>
+              <input type="text" value={tempP2} onChange={(e) => setTempP2(e.target.value)} placeholder="Ej. Pareja" />
             </div>
-            <button className="next-button" onClick={() => { playSound('click'); setShowNameModal(false); }}>
+            <button className="next-button" onClick={saveNames}>
               GUARDAR NOMBRES ✦
             </button>
           </div>
@@ -489,7 +477,7 @@ function App() {
             <h2>Edición VIP Pasión</h2>
             <p>Accede inmediatamente a los paquetes exclusivos de <strong>Especial Aniversario</strong> y <strong>Juegos de Rol & Fantasías</strong>.</p>
             <button className="next-button vip-btn" onClick={unlockVipSimulated}>
-              ✨ DESBLOQUEAR AHORA (GRATIS DEMO)
+              ✨ DESBLOQUEAR AHORA (GRATIS)
             </button>
           </div>
         </div>
@@ -590,7 +578,7 @@ function App() {
                     😈 No sé qué decir / Ver Penitencia
                   </button>
                 ) : (
-                  <button className="pass-button" onClick={nextCard}>Siguiente Reto ✦</button>
+                  <button className="pass-button" onClick={completeChallenge}>Siguiente Reto / Cambiar Turno ✦</button>
                 )}
               </>
             )}
@@ -622,8 +610,8 @@ function App() {
           <div className="modal-content info-content">
             <button className="modal-close" onClick={() => setShowInfo(false)}>×</button>
             <div className="brand-mark big-mark">P<span>✦</span></div>
-            <h2>PASSION PLAY PRO</h2>
-            <p>Aplicación completa para parejas con turnos inteligentes, audio sintético, cambio de temas visuales y modos VIP.</p>
+            <h2>PASSION PLAY</h2>
+            <p>Juego interactivo para parejas con turnos automáticos, tarjetas 3D, sonidos y penitencias por niveles.</p>
             <button className="next-button" onClick={() => setShowInfo(false)}>¡ENTENDIDO!</button>
           </div>
         </div>
